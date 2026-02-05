@@ -1,0 +1,126 @@
+╔═══════════════════════════════════════════════════════════════╗
+║          TELEGRAM BOT - RAILWAY DEPLOYMENT GUIDE              ║
+║                    (FIXED VERSION)                             ║
+╚═══════════════════════════════════════════════════════════════╝
+
+⚠️ IMPORTANT: Upload ONLY the 17 files in THIS folder!
+   Do NOT upload your entire project (62 files)!
+
+✅ What's in this folder (17 files):
+   • main.py                      (bot code)
+   • 11 Python modules            (dependencies)
+   • requirements.txt             (packages)
+   • Procfile, runtime.txt        (Railway config)
+   • README.md, .gitignore        (documentation)
+
+🔧 FIXED: Yahoo Finance blocking issue
+   ✓ Retry logic added
+   ✓ Custom headers to bypass blocks
+   ✓ BSE fallback if NSE fails
+
+╔═══════════════════════════════════════════════════════════════╗
+║                     DEPLOYMENT STEPS                           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+METHOD 1: GitHub + Railway (Recommended)
+─────────────────────────────────────────
+
+1. CREATE NEW GITHUB REPO
+   • Go to https://github.com/new
+   • Name: telegram-trading-bot
+   • Make it PUBLIC or PRIVATE
+   • Click "Create repository"
+
+2. UPLOAD THESE 17 FILES TO GITHUB
+   
+   Option A - Web Upload (Easiest):
+   ──────────────────────────────────
+   • On GitHub repo page, click "uploading an existing file"
+   • Drag ALL 17 files from this folder
+   • Write commit message: "Initial commit - Fixed version"
+   • Click "Commit changes"
+
+   Option B - Git Commands:
+   ────────────────────────
+   Open PowerShell in THIS folder and run:
+   
+   git init
+   git add .
+   git commit -m "Initial commit - Fixed bot"
+   git branch -M main
+   git remote add origin https://github.com/YOUR_USERNAME/telegram-trading-bot.git
+   git push -u origin main
+
+3. DEPLOY TO RAILWAY
+   • Go to https://railway.app
+   • Sign up/Login (use GitHub account)
+   • Click "New Project"
+   • Click "Deploy from GitHub repo"
+   • Select "telegram-trading-bot" repo
+   • Railway auto-detects and deploys!
+
+4. ADD BOT TOKEN
+   • In Railway dashboard, click your project
+   • Go to "Variables" tab
+   • Click "New Variable"
+   • Name: BOT_TOKEN
+   • Value: YOUR_TELEGRAM_BOT_TOKEN_HERE
+   • Click "Add"
+   • Bot automatically restarts
+
+5. TEST YOUR BOT
+   • Open Telegram
+   • Find your bot
+   • Send: /start
+   • Enter capital: 50000
+   • Send stock: RELIANCE
+   • ✅ Should work now!
+
+╔═══════════════════════════════════════════════════════════════╗
+║                  GET BOT TOKEN (If you don't have one)        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+1. Open Telegram
+2. Search for: @BotFather
+3. Send: /newbot
+4. Follow instructions (choose name & username)
+5. Copy the TOKEN (looks like: 123456789:ABCdefGHIjklMNOpqrs...)
+6. Use this as BOT_TOKEN in Railway
+
+╔═══════════════════════════════════════════════════════════════╗
+║                      TROUBLESHOOTING                           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+❌ Error: "Failed to fetch"
+   → Make sure you uploaded files from telegram-bot-deploy folder
+   → Check that data_fetcher.py size is 13.4 KB (fixed version)
+
+❌ Error: "BOT_TOKEN not set"
+   → Add BOT_TOKEN in Railway Variables tab
+   → Make sure variable name is exactly: BOT_TOKEN
+
+❌ Bot doesn't respond
+   → Check Railway Deploy Logs for errors
+   → Make sure all 17 files were uploaded
+   → Verify BOT_TOKEN is correct
+
+❌ Uploaded 62 files by mistake
+   → Delete the deployment on Railway
+   → Start fresh with ONLY these 17 files
+
+╔═══════════════════════════════════════════════════════════════╗
+║                     NEED HELP?                                 ║
+╚═══════════════════════════════════════════════════════════════╝
+
+If you get stuck:
+1. Check Railway Deploy Logs (shows exact errors)
+2. Make sure you're using THIS folder (not the parent folder)
+3. Verify your BOT_TOKEN is correct
+4. Try testing locally first:
+   
+   cd telegram-bot-deploy
+   pip install -r requirements.txt
+   $env:BOT_TOKEN="your_token"
+   python main.py
+
+Good luck! Your bot should work perfectly now! 🚀
