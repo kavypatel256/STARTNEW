@@ -19,7 +19,6 @@ import yfinance as yf
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import warnings
-import time
 warnings.filterwarnings('ignore')
 
 
@@ -45,7 +44,8 @@ class IndianStockDataFetcher:
                         symbol: str,
                         period: str = "6mo",
                         interval: str = "1d",
-                        auto_add_suffix: bool = True) -> Optional[pd.DataFrame]:
+                        auto_add_suffix: bool = True,
+                        max_retries: int = 3) -> Optional[pd.DataFrame]:
         """
         Fetch stock data with technical indicators
         
@@ -54,45 +54,58 @@ class IndianStockDataFetcher:
             period: Data period ('1mo', '3mo', '6mo', '1y', '2y', etc.)
             interval: Data interval ('1d', '1wk', '1h', '15m', etc.)
             auto_add_suffix: Automatically add .NS if no suffix
+            max_retries: Maximum number of retry attempts
         
         Returns:
             DataFrame with OHLCV + indicators or None if fetch fails
         """
+        import time
+        
         # Add .NS suffix if not present
         if auto_add_suffix and '.' not in symbol:
             symbol = f"{symbol}.NS"
         
-        try:
-            # Fetch data - let yfinance handle the session internally
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(period=period, interval=interval)
-            
-            if data.empty:
-                print(f"Warning: No data fetched for {symbol}")
-                # Try with .BO suffix as fallback
-                if symbol.endswith('.NS'):
-                    time.sleep(1)  # Small delay before retry
+        # Try fetching with retries
+        for attempt in range(max_retries):
+            try:
+                # Add delay between retries to avoid rate limiting
+                if attempt > 0:
+                    delay = 2 ** attempt  # Exponential backoff: 2s, 4s, 8s
+                    time.sleep(delay)
+                
+                # Fetch data
+                ticker = yf.Ticker(symbol)
+                data = ticker.history(period=period, interval=interval)
+                
+                if not data.empty:
+                    # Add technical indicators
+                    data = self._add_indicators(data)
+                    return data
+                
+                # If empty, try .BO as fallback (only on first attempt)
+                if attempt == 0 and symbol.endswith('.NS'):
+                    time.sleep(1)
                     alt_symbol = symbol.replace('.NS', '.BO')
-                    print(f"Trying alternate symbol: {alt_symbol}")
                     ticker = yf.Ticker(alt_symbol)
                     data = ticker.history(period=period, interval=interval)
                     
-                if data.empty:
-                    return None
-            
-            # Add technical indicators
-            data = self._add_indicators(data)
-            
-            return data
+                    if not data.empty:
+                        data = self._add_indicators(data)
+                        return data
+                
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    print(f"Error fetching {symbol} after {max_retries} attempts: {e}")
+                # Continue to next retry
+                continue
         
-        except Exception as e:
-            print(f"Error fetching {symbol}: {e}")
-            return None
+        return None
     
     def fetch_index_data(self,
                         index: str = "NIFTY",
                         period: str = "6mo",
-                        interval: str = "1d") -> Optional[pd.DataFrame]:
+                        interval: str = "1d",
+                        max_retries: int = 3) -> Optional[pd.DataFrame]:
         """
         Fetch index data
         
@@ -100,46 +113,65 @@ class IndianStockDataFetcher:
             index: 'NIFTY' or 'BANKNIFTY'
             period: Data period
             interval: Data interval
+            max_retries: Maximum retry attempts
         
         Returns:
             DataFrame with index OHLCV + indicators
         """
+        import time
+        
         symbol = self.nifty_symbol if index.upper() == "NIFTY" else self.banknifty_symbol
         
-        try:
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(period=period, interval=interval)
-            
-            if data.empty:
-                return None
-            
-            # Add indicators
-            data = self._add_indicators(data)
-            
-            return data
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                
+                ticker = yf.Ticker(symbol)
+                data = ticker.history(period=period, interval=interval)
+                
+                if not data.empty:
+                    # Add indicators
+                    data = self._add_indicators(data)
+                    return data
+                
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    print(f"Error fetching {index} after {max_retries} attempts: {e}")
+                continue
         
-        except Exception as e:
-            print(f"Error fetching {index}: {e}")
-            return None
+        return None
     
-    def fetch_india_vix(self, period: str = "1mo") -> Optional[pd.DataFrame]:
+    def fetch_india_vix(self, period: str = "1mo", max_retries: int = 3) -> Optional[pd.DataFrame]:
         """
         Fetch India VIX data
         
         Args:
             period: Data period
+            max_retries: Maximum retry attempts
         
         Returns:
             DataFrame with VIX data
         """
-        try:
-            ticker = yf.Ticker(self.india_vix_symbol)
-            data = ticker.history(period=period)
-            return data
+        import time
         
-        except Exception as e:
-            print(f"Error fetching India VIX: {e}")
-            return None
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    time.sleep(2 ** attempt)
+                
+                ticker = yf.Ticker(self.india_vix_symbol)
+                data = ticker.history(period=period)
+                
+                if not data.empty:
+                    return data
+                    
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    print(f"Error fetching India VIX after {max_retries} attempts: {e}")
+                continue
+        
+        return None
     
     def get_current_vix(self) -> float:
         """
