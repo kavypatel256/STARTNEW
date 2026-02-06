@@ -22,42 +22,6 @@ import warnings
 import time
 warnings.filterwarnings('ignore')
 
-# Configure yfinance session with retry logic and headers
-import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-
-def get_yf_session():
-    """Create a session with retry logic and proper headers"""
-    session = requests.Session()
-    
-    # Retry strategy: 3 retries with exponential backoff
-    retry_strategy = Retry(
-        total=3,
-        backoff_factor=1,
-        status_forcelist=[429, 500, 502, 503, 504],
-    )
-    
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    
-    # Add headers to avoid being blocked
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-    })
-    
-    return session
-
-# Set global yfinance session
-yf.set_tz_cache_location(None)
-
 
 class IndianStockDataFetcher:
     """
@@ -99,11 +63,8 @@ class IndianStockDataFetcher:
             symbol = f"{symbol}.NS"
         
         try:
-            # Create session with retry logic
-            session = get_yf_session()
-            
-            # Fetch data with custom session
-            ticker = yf.Ticker(symbol, session=session)
+            # Fetch data - let yfinance handle the session internally
+            ticker = yf.Ticker(symbol)
             data = ticker.history(period=period, interval=interval)
             
             if data.empty:
@@ -113,7 +74,7 @@ class IndianStockDataFetcher:
                     time.sleep(1)  # Small delay before retry
                     alt_symbol = symbol.replace('.NS', '.BO')
                     print(f"Trying alternate symbol: {alt_symbol}")
-                    ticker = yf.Ticker(alt_symbol, session=session)
+                    ticker = yf.Ticker(alt_symbol)
                     data = ticker.history(period=period, interval=interval)
                     
                 if data.empty:
@@ -146,8 +107,7 @@ class IndianStockDataFetcher:
         symbol = self.nifty_symbol if index.upper() == "NIFTY" else self.banknifty_symbol
         
         try:
-            session = get_yf_session()
-            ticker = yf.Ticker(symbol, session=session)
+            ticker = yf.Ticker(symbol)
             data = ticker.history(period=period, interval=interval)
             
             if data.empty:
@@ -173,8 +133,7 @@ class IndianStockDataFetcher:
             DataFrame with VIX data
         """
         try:
-            session = get_yf_session()
-            ticker = yf.Ticker(self.india_vix_symbol, session=session)
+            ticker = yf.Ticker(self.india_vix_symbol)
             data = ticker.history(period=period)
             return data
         
